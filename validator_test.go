@@ -22,7 +22,7 @@ func TestValidatorDetection(t *testing.T) {
 			var c = []string{"a", "b", "c"}
 			var d = map[string]int{"a": 1, "b": 2}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 0 {
 			t.Errorf("got %d failures, want 0", len(failures))
 		}
@@ -39,7 +39,7 @@ func TestValidatorDetection(t *testing.T) {
 			
 			var a = A{}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 0 {
 			t.Errorf("got %d failures, want 0", len(failures))
 		}
@@ -56,7 +56,7 @@ func TestValidatorDetection(t *testing.T) {
 			
 			var a = A{Field1: "hello", Field2: 1}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 0 {
 			t.Errorf("got %d failures, want 0", len(failures))
 		}
@@ -73,7 +73,7 @@ func TestValidatorDetection(t *testing.T) {
 			
 			var a = A{"hello", 1}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 1 {
 			t.Errorf("got %d failures, want 1", len(failures))
 		}
@@ -85,7 +85,7 @@ func TestValidatorDetection(t *testing.T) {
 			
 			var e = struct{ Field1 string }{"hello"}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 1 {
 			t.Errorf("got %d failures, want 1", len(failures))
 		}
@@ -97,7 +97,7 @@ func TestValidatorDetection(t *testing.T) {
 			
 			var e = struct{ Field1 string }{Field1: "hello"}
 		`
-		failures := validate(t, src, nil)
+		failures := validate(t, src)
 		if len(failures) != 0 {
 			t.Errorf("got %d failures, want 0", len(failures))
 		}
@@ -113,8 +113,7 @@ func TestValidatorFailures(t *testing.T) {
 			var a = struct{ Field1 string}{"hello"} // line starts with 4 tabs
 		`
 
-		fs := token.NewFileSet()
-		failures := validate(t, src, fs)
+		failures := validate(t, src)
 		if len(failures) != 1 {
 			t.Fatalf("got %d failures, want 1", len(failures))
 		}
@@ -127,18 +126,17 @@ func TestValidatorFailures(t *testing.T) {
 		expectedLine := 4
 		expectedPos := 12
 		expectedInfo := fmt.Sprintf("%s:%d:%d: %s", fileName, expectedLine, expectedPos, expectedMessage)
-		if failure.Information(fs) != expectedInfo {
-			t.Errorf("got %q, want %q", failure.Information(fs), expectedInfo)
+		if failure.String() != expectedInfo {
+			t.Errorf("got %q, want %q", failure.String(), expectedInfo)
 		}
 
 	})
 }
 
-func validate(t *testing.T, src string, fs *token.FileSet) []Failure {
+func validate(t *testing.T, src string) []Failure {
 	t.Helper()
-	if fs == nil {
-		fs = token.NewFileSet()
-	}
+	fs := token.NewFileSet()
+
 	f, err := parser.ParseFile(fs, fileName, src, parser.SkipObjectResolution)
 	if err != nil {
 		log.Fatal(err)
@@ -155,7 +153,7 @@ func validate(t *testing.T, src string, fs *token.FileSet) []Failure {
 	onFailure := func(failure Failure) {
 		failures = append(failures, failure)
 	}
-	validator, err := NewValidator(info, onFailure)
+	validator, err := NewValidator(fs, info, onFailure)
 	if err != nil {
 		log.Fatal(err)
 	}

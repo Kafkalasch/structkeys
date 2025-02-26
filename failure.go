@@ -7,11 +7,20 @@ import (
 )
 
 type Failure struct {
-	Message string
-	Node    *ast.CompositeLit
+	Message  string
+	Node     ast.Node
+	Position token.Position
 }
 
-func (f Failure) Information(fs *token.FileSet) string {
-	pos := fs.Position(f.Node.Pos())
-	return fmt.Sprintf("%s: %s", pos, f.Message)
+func NewFailure(message string, node ast.Node, fs *token.FileSet) Failure {
+	pos := fs.Position(node.Pos())
+	return Failure{
+		Message:  message,
+		Node:     node,
+		Position: pos,
+	}
+}
+
+func (f Failure) String() string {
+	return fmt.Sprintf("%s: %s", f.Position, f.Message)
 }

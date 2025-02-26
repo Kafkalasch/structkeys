@@ -3,15 +3,20 @@ package structkeys
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 )
 
 type Validator struct {
+	FileSet   *token.FileSet
 	Info      *types.Info
 	OnFailure func(Failure)
 }
 
-func NewValidator(info *types.Info, onFailure func(failure Failure)) (*Validator, error) {
+func NewValidator(fs *token.FileSet, info *types.Info, onFailure func(failure Failure)) (*Validator, error) {
+	if fs == nil {
+		return nil, fmt.Errorf("fs is nil")
+	}
 	if info == nil {
 		return nil, fmt.Errorf("info is nil")
 	}
@@ -25,6 +30,7 @@ func NewValidator(info *types.Info, onFailure func(failure Failure)) (*Validator
 		return nil, fmt.Errorf("onFailure is nil")
 	}
 	val := &Validator{
+		FileSet:   fs,
 		Info:      info,
 		OnFailure: onFailure,
 	}
@@ -32,6 +38,14 @@ func NewValidator(info *types.Info, onFailure func(failure Failure)) (*Validator
 }
 
 func (v *Validator) Visit(node ast.Node) ast.Visitor {
+	// fmt.Printf("Visiting node of type %T\n", node)
+	id, ok := node.(*ast.Ident)
+	if ok {
+		//if id.Name == "" {
+		fmt.Printf("Ident: %s\n", id.Name)
+		//}
+	}
+
 	structInit, ok := v.asStructCompositeLit(node)
 	if !ok {
 		return v
@@ -51,10 +65,8 @@ func (v *Validator) Visit(node ast.Node) ast.Visitor {
 		return v
 	}
 
-	failure := Failure{
-		Message: "struct literals must use keys during initialization",
-		Node:    structInit,
-	}
+	message := "struct literals must use keys during initialization"
+	failure := NewFailure(message, structInit, v.FileSet)
 	v.OnFailure(failure)
 	return v
 }
