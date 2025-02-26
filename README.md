@@ -1,2 +1,2 @@
-# compkeys
-A linter that ensures that composite literals use keys
+# structkeys
+A linter that ensures that struct literals use keys
